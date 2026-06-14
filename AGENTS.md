@@ -35,6 +35,22 @@ node tests/smoke.js
 
 测试范围至少覆盖 Electron 应用启动、读取测试 JSON、基础统计展示和 Markdown 导出。若本次改动影响打包、数据保存、窗口生命周期或工作区同步，还必须补充对应验证，并在最终回复中说明验证结果。
 
+## 开发构建规则
+
+每次修改后，都必须重新编译开发目录中的 macOS 应用。
+
+编译入口：
+
+```bash
+npm run build:mac
+```
+
+开发构建产物路径：
+
+`/Users/zhangmeng/Documents/github/daily/dist/mac-arm64/每日工作记录.app`
+
+除非用户明确同意同步正式使用目录，否则只更新开发目录的构建产物，不得替换 `/Users/zhangmeng/Documents/Baidu/每日工作记录/每日工作记录.app`。
+
 ## 更新日志
 
 维护 `log.md` 作为版本更新日志。
@@ -44,6 +60,7 @@ node tests/smoke.js
 - 日期
 - 变更摘要
 - 测试结果
+- 开发目录 app 是否已重新编译
 - 是否影响 `daily-data.json` 格式
 - 是否已同步到正式使用目录
 
@@ -71,4 +88,3 @@ node tests/smoke.js
 3. 备份原 `daily-data.json`。
 4. 获得用户明确同意。
 5. 执行迁移并在 `log.md` 记录数据格式变化。
-

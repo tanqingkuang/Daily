@@ -16,7 +16,7 @@
           <div>
             <div class="brand-title-row">
               <h1>每日工作</h1>
-              <span class="version-badge">V1.0.0</span>
+              <span class="version-badge">V1.0.1</span>
             </div>
             <p>时间记录与统计</p>
           </div>
@@ -97,15 +97,17 @@
                   <select name="workItemId" id="work-item-select"></select>
                 </label>
 
-                <label class="field">
-                  <span>开始时间</span>
-                  <input name="start" type="time" value="09:30" />
-                </label>
+                <div class="time-row wide">
+                  <label class="field">
+                    <span>开始时间</span>
+                    <input name="start" type="text" inputmode="numeric" pattern="[0-2][0-9]:[0-5][0-9]" placeholder="09:30" value="09:30" />
+                  </label>
 
-                <label class="field">
-                  <span>结束时间</span>
-                  <input name="end" type="time" value="10:45" />
-                </label>
+                  <label class="field">
+                    <span>结束时间</span>
+                    <input name="end" type="text" inputmode="numeric" pattern="[0-2][0-9]:[0-5][0-9]" placeholder="10:45" value="10:45" />
+                  </label>
+                </div>
 
                 <label class="field wide">
                   <span>工作内容</span>

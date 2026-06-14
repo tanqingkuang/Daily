@@ -311,6 +311,16 @@ button {
   grid-column: 1 / -1;
 }
 
+.time-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.time-row.wide {
+  grid-column: 1 / -1;
+}
+
 .field span {
   color: #35536f;
   font-size: 13px;
