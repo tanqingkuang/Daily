@@ -31,7 +31,8 @@
     "win": {
       "target": [
         "portable"
-      ]
+      ],
+      "artifactName": "每日工作记录.exe"
     }
   },
   "devDependencies": {

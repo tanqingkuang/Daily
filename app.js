@@ -290,15 +290,17 @@ function renderWorkItems() {
                 const count = state.records.filter((record) => record.workItemId === item.id).length;
                 return `
                   <article class="work-map-item">
-                    <div>
-                      <strong>${escapeHtml(item.name)}</strong>
-                      <span>${count} 条记录</span>
+                    <div class="work-map-title-row">
+                      <div>
+                        <strong>${escapeHtml(item.name)}</strong>
+                        <span>${count} 条记录</span>
+                      </div>
+                      <div class="item-actions inline-actions">
+                        <button class="text-button" type="button" data-action="edit-work-item" data-id="${escapeHtml(item.id)}">编辑</button>
+                        <button class="text-button danger" type="button" data-action="delete-work-item" data-id="${escapeHtml(item.id)}">删除</button>
+                      </div>
                     </div>
                     <p>${escapeHtml(item.description || "暂无说明")}</p>
-                    <div class="item-actions">
-                      <button class="text-button" type="button" data-action="edit-work-item" data-id="${escapeHtml(item.id)}">编辑</button>
-                      <button class="text-button danger" type="button" data-action="delete-work-item" data-id="${escapeHtml(item.id)}">删除</button>
-                    </div>
                   </article>
                 `;
               })
@@ -307,13 +309,15 @@ function renderWorkItems() {
       return `
         <article class="work-map-row">
           <div class="work-map-type">
-            <div>
-              <strong>${escapeHtml(type)}</strong>
-              <span>${typeItems.length} 个工作项 / ${typeCount} 条记录</span>
-            </div>
-            <div class="item-actions">
-              <button class="text-button" type="button" data-action="edit-work-type" data-id="${escapeHtml(type)}">编辑</button>
-              <button class="text-button danger" type="button" data-action="delete-work-type" data-id="${escapeHtml(type)}">删除</button>
+            <div class="work-map-title-row">
+              <div>
+                <strong>${escapeHtml(type)}</strong>
+                <span>${typeItems.length} 个工作项 / ${typeCount} 条记录</span>
+              </div>
+              <div class="item-actions inline-actions">
+                <button class="text-button" type="button" data-action="edit-work-type" data-id="${escapeHtml(type)}">编辑</button>
+                <button class="text-button danger" type="button" data-action="delete-work-type" data-id="${escapeHtml(type)}">删除</button>
+              </div>
             </div>
           </div>
           <div class="work-map-items">
