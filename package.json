@@ -1,18 +1,44 @@
 {
   "name": "daily",
   "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
+  "description": "每日工作时间记录与统计桌面应用",
+  "main": "electron-main.js",
   "scripts": {
+    "build:mac": "electron-builder --mac dir",
+    "build:win": "electron-builder --win portable",
+    "desktop": "electron .",
     "start": "node server.js",
     "test": "playwright test"
   },
   "keywords": [],
-  "author": "",
+  "author": "zhangmeng",
   "license": "ISC",
   "type": "commonjs",
+  "build": {
+    "appId": "com.zhangmeng.daily-work",
+    "productName": "每日工作记录",
+    "files": [
+      "index.html",
+      "styles.css",
+      "app.js",
+      "electron-main.js",
+      "preload.js"
+    ],
+    "mac": {
+      "target": [
+        "dir"
+      ]
+    },
+    "win": {
+      "target": [
+        "portable"
+      ]
+    }
+  },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.3",
     "playwright": "^1.60.0"
   }
 }

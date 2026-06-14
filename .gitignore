@@ -1,6 +1,7 @@
 node_modules/
 test-results/
 playwright-report/
+dist/
 daily-data.json
 daily-data.json.tmp
 test-data.json

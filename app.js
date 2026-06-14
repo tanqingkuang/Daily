@@ -11,6 +11,7 @@ const seedState = {
 let state = structuredClone(seedState);
 let activeStatsRange = "day";
 let persistenceMode = "browser";
+let dataFilePath = "daily-data.json";
 
 function loadState() {
   try {
@@ -42,12 +43,25 @@ function setPersistenceStatus(message, mode = persistenceMode) {
   if (status) status.textContent = message;
   if (!detail) return;
   detail.textContent =
-    mode === "server"
-      ? "通过本地服务自动保存到 daily-data.json，适合放在百度云盘同步目录。"
-      : "当前使用浏览器本地存储；双击启动脚本后可自动写入 daily-data.json。";
+    mode === "desktop"
+      ? "桌面应用会自动保存到同目录 daily-data.json，关闭窗口即退出。"
+      : mode === "server"
+        ? "通过本地服务自动保存到 daily-data.json，适合放在百度云盘同步目录。"
+        : "当前使用浏览器本地存储；双击启动脚本后可自动写入 daily-data.json。";
 }
 
 async function loadStateFromStorage() {
+  if (window.dailyWorkStorage) {
+    try {
+      persistenceMode = "desktop";
+      dataFilePath = await window.dailyWorkStorage.getDataFile();
+      setPersistenceStatus("桌面应用自动保存", "desktop");
+      return normalizeState(await window.dailyWorkStorage.loadState());
+    } catch {
+      persistenceMode = "browser";
+    }
+  }
+
   if (window.location.protocol !== "file:") {
     try {
       const response = await fetch("/api/state", { cache: "no-store" });
@@ -68,6 +82,12 @@ async function loadStateFromStorage() {
 
 async function writeState() {
   const payload = normalizeState(state);
+  if (persistenceMode === "desktop") {
+    await window.dailyWorkStorage.saveState(payload);
+    setPersistenceStatus("已保存到 JSON", "desktop");
+    return;
+  }
+
   if (persistenceMode === "server") {
     const response = await fetch("/api/state", {
       method: "PUT",
@@ -457,12 +477,14 @@ function renderJson() {
     schemaVersion: 1,
     storage: {
       mode: persistenceMode,
-      file: persistenceMode === "server" ? "daily-data.json" : null,
+      file: persistenceMode === "desktop" ? dataFilePath : persistenceMode === "server" ? "daily-data.json" : null,
       browserStorageKey: persistenceMode === "browser" ? STORAGE_KEY : null,
       note:
-        persistenceMode === "server"
-          ? "当前通过本地服务自动保存到同目录 daily-data.json。"
-          : "当前直接打开 HTML，数据保存在浏览器 localStorage。双击启动脚本后会自动写入 daily-data.json。",
+        persistenceMode === "desktop"
+          ? "当前通过桌面应用自动保存到 daily-data.json。"
+          : persistenceMode === "server"
+            ? "当前通过本地服务自动保存到同目录 daily-data.json。"
+            : "当前直接打开 HTML，数据保存在浏览器 localStorage。双击启动脚本后会自动写入 daily-data.json。",
     },
     workTypes: state.workTypes,
     workItems: state.workItems,
