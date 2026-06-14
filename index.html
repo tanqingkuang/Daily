@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>每日工作时间记录</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">日</div>
+          <div>
+            <h1>每日工作</h1>
+            <p>时间记录与统计</p>
+          </div>
+        </div>
+
+        <nav class="nav-list" aria-label="主要导航">
+          <button class="nav-item active" type="button" data-view="record">
+            <i data-lucide="square-pen"></i>
+            <span>新增记录</span>
+          </button>
+          <button class="nav-item" type="button" data-view="work-items">
+            <i data-lucide="folder-kanban"></i>
+            <span>关联工作</span>
+          </button>
+          <button class="nav-item" type="button" data-view="timeline">
+            <i data-lucide="list-todo"></i>
+            <span>今日时间线</span>
+          </button>
+          <button class="nav-item" type="button" data-view="stats">
+            <i data-lucide="chart-no-axes-column"></i>
+            <span>统计分析</span>
+          </button>
+          <button class="nav-item" type="button" data-view="json">
+            <i data-lucide="braces"></i>
+            <span>JSON 数据</span>
+          </button>
+        </nav>
+
+        <div class="sync-box">
+          <div class="sync-icon"><i data-lucide="cloud"></i></div>
+          <div>
+            <strong>数据保存</strong>
+            <p>当前纯前端版保存在浏览器本地；如需自动写入百度云盘文件，可再加本地写文件版本。</p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">2026-06-14 星期日</p>
+            <h2>记录完成后的工作，而不是提前排班</h2>
+          </div>
+        </header>
+
+        <section class="view active" id="record-view" aria-label="新增记录">
+          <div class="workspace-grid">
+            <form class="entry-panel" id="entry-form">
+              <input type="hidden" name="recordId" />
+              <div class="panel-header">
+                <div>
+                  <h3 id="entry-title">新增一条工作记录</h3>
+                  <p>完成一项工作后填写，提交后进入当天时间线。</p>
+                </div>
+                <span class="status-pill">草稿</span>
+              </div>
+
+              <div class="field-grid">
+                <label class="field">
+                  <span>日期</span>
+                  <input name="date" type="date" />
+                </label>
+
+                <label class="field">
+                  <span>工作类型</span>
+                  <select name="type">
+                    <option>开发实现</option>
+                    <option>需求沟通</option>
+                    <option>问题排查</option>
+                    <option>文档整理</option>
+                    <option>会议同步</option>
+                    <option>学习研究</option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span>关联工作</span>
+                  <select name="workItemId" id="work-item-select"></select>
+                </label>
+
+                <label class="field">
+                  <span>开始时间</span>
+                  <input name="start" type="time" value="09:30" />
+                </label>
+
+                <label class="field">
+                  <span>结束时间</span>
+                  <input name="end" type="time" value="10:45" />
+                </label>
+
+                <label class="field wide">
+                  <span>工作内容</span>
+                  <textarea name="content" rows="4">完成首版 UI 结构：新增记录、今日时间线、统计分析、JSON 预览。</textarea>
+                </label>
+
+                <label class="field wide">
+                  <span>备注</span>
+                  <textarea name="note" rows="3">下一步需要确认关联工作维护方式和统计合并规则。</textarea>
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button class="secondary-button" type="button" id="fill-sample">
+                  <i data-lucide="wand-sparkles"></i>
+                  <span>填入示例</span>
+                </button>
+                <button class="secondary-button" type="button" id="cancel-entry-edit">
+                  <i data-lucide="x"></i>
+                  <span>取消编辑</span>
+                </button>
+                <button class="primary-button" type="submit">
+                  <i data-lucide="plus"></i>
+                  <span id="entry-submit-label">加入今日记录</span>
+                </button>
+              </div>
+            </form>
+
+            <aside class="day-summary">
+              <div class="panel-header compact">
+                <h3>今日概览</h3>
+                <span id="today-record-count">0 条记录</span>
+              </div>
+              <div class="metric-stack">
+                <div class="metric-row">
+                  <span>总记录时长</span>
+                  <strong id="total-hours">6.0h</strong>
+                </div>
+                <div class="metric-row">
+                  <span>主要类型</span>
+                  <strong id="today-main-type">-</strong>
+                </div>
+                <div class="metric-row">
+                  <span>有备注记录</span>
+                  <strong id="today-note-count">0 项</strong>
+                </div>
+              </div>
+              <div class="mini-chart" id="today-mini-chart" aria-label="类型占比示意图"></div>
+              <div class="legend" id="today-legend"></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="work-items-view" aria-label="关联工作">
+          <div class="workspace-grid">
+            <form class="entry-panel" id="work-item-form">
+              <input type="hidden" name="workItemId" />
+              <div class="panel-header">
+                <div>
+                  <h3 id="work-item-title">维护关联工作</h3>
+                  <p>先在这里创建常用工作项，新增记录时从下拉菜单选择。</p>
+                </div>
+                <span class="status-pill">工作项</span>
+              </div>
+
+              <div class="field-grid">
+                <label class="field">
+                  <span>工作名称</span>
+                  <input name="name" value="统计合并规则设计" />
+                </label>
+
+                <label class="field">
+                  <span>默认类型</span>
+                  <select name="defaultType">
+                    <option>开发实现</option>
+                    <option>需求沟通</option>
+                    <option>问题排查</option>
+                    <option>文档整理</option>
+                    <option>会议同步</option>
+                    <option>学习研究</option>
+                  </select>
+                </label>
+
+                <label class="field wide">
+                  <span>说明</span>
+                  <textarea name="description" rows="4">用于收集同一个主题下分多天完成的分析、实现和整理工作。</textarea>
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button class="secondary-button" type="button" id="cancel-work-item-edit">
+                  <i data-lucide="x"></i>
+                  <span>取消编辑</span>
+                </button>
+                <button class="primary-button" type="submit">
+                  <i data-lucide="plus"></i>
+                  <span id="work-item-submit-label">新建关联工作</span>
+                </button>
+              </div>
+            </form>
+
+            <aside class="day-summary">
+              <div class="panel-header compact">
+                <h3>已有工作项</h3>
+                <span id="work-item-count">4 项</span>
+              </div>
+              <div class="work-item-list" id="work-item-list"></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="timeline-view" aria-label="今日时间线">
+          <div class="section-head">
+            <div>
+              <h3>今日时间线</h3>
+              <p>按结束时间记录已完成的工作。</p>
+            </div>
+            <label class="date-filter">
+              <i data-lucide="calendar-days"></i>
+              <input type="date" id="timeline-date" />
+            </label>
+          </div>
+          <div class="timeline" id="timeline-list"></div>
+        </section>
+
+        <section class="view" id="stats-view" aria-label="统计分析">
+          <div class="section-head">
+            <div>
+              <h3>统计分析</h3>
+              <p>后续可以按天、周、月或自定义时间段计算。</p>
+            </div>
+            <div class="analysis-actions">
+              <div class="segmented" role="tablist" aria-label="统计范围">
+                <button class="active" type="button" data-range="day">本日</button>
+                <button type="button" data-range="week">本周</button>
+                <button type="button" data-range="month">本月</button>
+                <button type="button" data-range="quarter">本季度</button>
+                <button type="button" data-range="custom">自定义</button>
+              </div>
+              <button class="primary-button" type="button" id="export-report">
+                <i data-lucide="download"></i>
+                <span>导出</span>
+              </button>
+            </div>
+          </div>
+          <div class="custom-range" id="custom-range">
+            <label class="date-filter">
+              <span>开始</span>
+              <input type="date" id="stats-start-date" />
+            </label>
+            <label class="date-filter">
+              <span>结束</span>
+              <input type="date" id="stats-end-date" />
+            </label>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-panel">
+              <h4 id="stats-type-title">类型占比</h4>
+              <div class="bar-list" id="stats-type-bars"></div>
+            </div>
+
+            <div class="stat-panel">
+              <h4>项目耗时</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>关联工作</th>
+                    <th>时长</th>
+                    <th>工作内容</th>
+                  </tr>
+                </thead>
+                <tbody id="stats-work-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="json-view" aria-label="JSON 数据">
+          <div class="section-head">
+            <div>
+              <h3>JSON 数据预览</h3>
+              <p>真实版本会把这些内容写入百度云盘同步目录中的 JSON 文件。</p>
+            </div>
+            <button class="primary-button" type="button" id="copy-json">
+              <i data-lucide="copy"></i>
+              <span>复制</span>
+            </button>
+          </div>
+          <pre class="json-preview" id="json-preview"></pre>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="export-modal" aria-hidden="true">
+      <section class="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+        <div class="modal-header">
+          <div>
+            <h3 id="export-modal-title">导出 Markdown 汇报</h3>
+            <p>按工作类型统计占比，按关联工作合并内容，并保留每条记录的时长。</p>
+          </div>
+          <button class="icon-button" type="button" id="close-export-modal" title="关闭">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <textarea class="export-textarea" id="export-markdown" spellcheck="false"></textarea>
+        <div class="modal-actions">
+          <span id="copy-status">可复制到汇报文档中继续调整。</span>
+          <button class="primary-button" type="button" id="copy-export-markdown">
+            <i data-lucide="copy"></i>
+            <span>复制 Markdown</span>
+          </button>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
