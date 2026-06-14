@@ -74,6 +74,7 @@ async function main() {
     }, today);
     await page.reload();
     await page.waitForSelector("#entry-title", { timeout: 10000 });
+    assert(!(await page.locator(".nav-list").textContent()).includes("JSON 数据"));
 
     await switchView(page, "record");
     await page.locator('#entry-form select[name="type"]').selectOption("开发实现");

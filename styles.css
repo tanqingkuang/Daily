@@ -860,19 +860,6 @@ th {
   font-weight: 650;
 }
 
-.json-preview {
-  min-height: 440px;
-  margin: 0;
-  padding: 18px;
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: #dceeff;
-  background: #17334d;
-  font-size: 13px;
-  line-height: 1.55;
-}
-
 .modal-backdrop {
   position: fixed;
   inset: 0;

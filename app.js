@@ -511,27 +511,6 @@ function buildExportMarkdown() {
   return lines.join("\n").trim();
 }
 
-function renderJson() {
-  const data = {
-    schemaVersion: 1,
-    storage: {
-      mode: persistenceMode,
-      file: persistenceMode === "desktop" ? dataFilePath : persistenceMode === "server" ? "daily-data.json" : null,
-      browserStorageKey: persistenceMode === "browser" ? STORAGE_KEY : null,
-      note:
-        persistenceMode === "desktop"
-          ? "当前通过桌面应用自动保存到 daily-data.json。"
-          : persistenceMode === "server"
-            ? "当前通过本地服务自动保存到同目录 daily-data.json。"
-            : "当前直接打开 HTML，数据保存在浏览器 localStorage。双击启动脚本后会自动写入 daily-data.json。",
-    },
-    workTypes: state.workTypes,
-    workItems: state.workItems,
-    records: state.records,
-  };
-  document.querySelector("#json-preview").textContent = JSON.stringify(data, null, 2);
-}
-
 function refreshUi() {
   renderTypeSelects();
   renderWorkItemSelect();
@@ -539,7 +518,6 @@ function refreshUi() {
   renderWorkItems();
   renderTimeline();
   renderStats();
-  renderJson();
   updateSummary();
   if (window.lucide) {
     window.lucide.createIcons();
@@ -788,7 +766,6 @@ function bindEvents() {
     renderWorkItemSelect(item.id);
     document.querySelector("#work-item-select").value = item.id;
     resetWorkItemForm();
-    switchView("record");
   });
 
   document.querySelector("#cancel-work-item-edit").addEventListener("click", resetWorkItemForm);
@@ -888,12 +865,6 @@ function bindEvents() {
   });
   document.querySelector("#export-modal").addEventListener("click", (event) => {
     if (event.target.id === "export-modal") closeExportModal();
-  });
-  document.querySelector("#copy-json").addEventListener("click", async () => {
-    await copyText(document.querySelector("#json-preview").textContent, document.querySelector("#copy-json span"));
-    setTimeout(() => {
-      document.querySelector("#copy-json span").textContent = "复制";
-    }, 1200);
   });
 }
 
