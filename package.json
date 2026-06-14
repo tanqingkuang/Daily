@@ -1,11 +1,11 @@
 {
   "name": "daily",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "每日工作时间记录与统计桌面应用",
   "main": "electron-main.js",
   "scripts": {
     "build:mac": "electron-builder --mac dir",
-    "build:win": "electron-builder --win portable",
+    "build:win": "electron-builder --win portable --x64",
     "desktop": "electron .",
     "test": "node tests/smoke.js"
   },

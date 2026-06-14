@@ -43,13 +43,19 @@ async function main() {
     await page.evaluate((date) => {
       return window.dailyWorkStorage.saveState({
         schemaVersion: 1,
-        workTypes: ["开发实现"],
+        workTypes: ["开发实现", "需求沟通"],
         workItems: [
           {
             id: "work-smoke-001",
             name: "每日工作记录工具",
             defaultType: "开发实现",
             description: "用于验证真实空数据流程。",
+          },
+          {
+            id: "work-smoke-002",
+            name: "需求评审",
+            defaultType: "需求沟通",
+            description: "用于验证关联工作按类型筛选。",
           },
         ],
         records: [
@@ -68,6 +74,22 @@ async function main() {
     }, today);
     await page.reload();
     await page.waitForSelector("#entry-title", { timeout: 10000 });
+
+    await switchView(page, "record");
+    await page.locator('#entry-form select[name="type"]').selectOption("开发实现");
+    assert((await page.locator("#work-item-select").textContent()).includes("每日工作记录工具"));
+    assert(!(await page.locator("#work-item-select").textContent()).includes("需求评审"));
+    await page.locator('#entry-form select[name="type"]').selectOption("需求沟通");
+    assert((await page.locator("#work-item-select").textContent()).includes("需求评审"));
+    assert(!(await page.locator("#work-item-select").textContent()).includes("每日工作记录工具"));
+
+    await switchView(page, "work-items");
+    await page.waitForSelector("#work-map");
+    const workMapText = await page.locator("#work-map").textContent();
+    assert(workMapText.includes("开发实现"));
+    assert(workMapText.includes("每日工作记录工具"));
+    assert(workMapText.includes("需求沟通"));
+    assert(workMapText.includes("需求评审"));
 
     await switchView(page, "timeline");
     await page.waitForSelector("#timeline-list");

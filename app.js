@@ -219,66 +219,105 @@ function nextId(prefix, collection) {
   return `${prefix}-${Date.now().toString(36)}-${String(collection.length + 1).padStart(3, "0")}`;
 }
 
-function renderWorkItemSelect() {
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function getWorkItemsForType(type) {
+  return state.workItems.filter((item) => item.defaultType === type);
+}
+
+function renderWorkItemSelect(preferredId) {
   const select = document.querySelector("#work-item-select");
-  select.innerHTML = state.workItems
-    .map((item) => `<option value="${item.id}">${item.name}</option>`)
-    .join("");
+  const form = document.querySelector("#entry-form");
+  const selectedType = form.elements.type.value;
+  const workItems = getWorkItemsForType(selectedType);
+  const currentValue = preferredId ?? select.value;
+
+  if (!selectedType) {
+    select.innerHTML = `<option value="">请先新建工作类型</option>`;
+    return;
+  }
+
+  if (workItems.length === 0) {
+    select.innerHTML = `<option value="">该类型下暂无关联工作</option>`;
+    return;
+  }
+
+  select.innerHTML = workItems.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("");
+  select.value = workItems.some((item) => item.id === currentValue) ? currentValue : workItems[0].id;
 }
 
 function renderTypeSelects() {
-  const options = state.workTypes.map((type) => `<option>${type}</option>`).join("");
+  const entryType = document.querySelector('#entry-form select[name="type"]').value;
+  const workItemType = document.querySelector("#work-item-type-select").value;
+  const options = state.workTypes.map((type) => `<option>${escapeHtml(type)}</option>`).join("");
   document.querySelector('#entry-form select[name="type"]').innerHTML = options;
   document.querySelector("#work-item-type-select").innerHTML = options;
+  if (state.workTypes.includes(entryType)) {
+    document.querySelector('#entry-form select[name="type"]').value = entryType;
+  }
+  if (state.workTypes.includes(workItemType)) {
+    document.querySelector("#work-item-type-select").value = workItemType;
+  }
 }
 
 function renderWorkTypes() {
-  const list = document.querySelector("#work-type-list");
   document.querySelector("#work-type-count").textContent = `${state.workTypes.length} 项`;
-  if (state.workTypes.length === 0) {
-    list.innerHTML = `<div class="empty-state">还没有工作类型。先在左侧表单新建一个类型。</div>`;
-    return;
-  }
-  list.innerHTML = state.workTypes
-    .map((type) => {
-      const count = state.records.filter((record) => record.type === type).length;
-      return `
-        <article class="work-item-card">
-          <div>
-            <strong>${type}</strong>
-            <span>${count} 条记录</span>
-          </div>
-          <div class="item-actions">
-            <button class="text-button" type="button" data-action="edit-work-type" data-id="${type}">编辑</button>
-            <button class="text-button danger" type="button" data-action="delete-work-type" data-id="${type}">删除</button>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
 }
 
 function renderWorkItems() {
-  const list = document.querySelector("#work-item-list");
+  const map = document.querySelector("#work-map");
   document.querySelector("#work-item-count").textContent = `${state.workItems.length} 项`;
-  if (state.workItems.length === 0) {
-    list.innerHTML = `<div class="empty-state">还没有关联工作。先新建工作类型，再创建关联工作。</div>`;
+  if (state.workTypes.length === 0) {
+    map.innerHTML = `<div class="empty-state">还没有工作类型。先在上方新建一个类型。</div>`;
     return;
   }
-  list.innerHTML = state.workItems
-    .map((item) => {
-      const count = state.records.filter((record) => record.workItemId === item.id).length;
+
+  map.innerHTML = state.workTypes
+    .map((type) => {
+      const typeItems = getWorkItemsForType(type);
+      const typeCount = state.records.filter((record) => record.type === type).length;
+      const itemsHtml =
+        typeItems.length > 0
+          ? typeItems
+              .map((item) => {
+                const count = state.records.filter((record) => record.workItemId === item.id).length;
+                return `
+                  <article class="work-map-item">
+                    <div>
+                      <strong>${escapeHtml(item.name)}</strong>
+                      <span>${count} 条记录</span>
+                    </div>
+                    <p>${escapeHtml(item.description || "暂无说明")}</p>
+                    <div class="item-actions">
+                      <button class="text-button" type="button" data-action="edit-work-item" data-id="${escapeHtml(item.id)}">编辑</button>
+                      <button class="text-button danger" type="button" data-action="delete-work-item" data-id="${escapeHtml(item.id)}">删除</button>
+                    </div>
+                  </article>
+                `;
+              })
+              .join("")
+          : `<div class="empty-state compact-empty">这个类型下还没有关联工作。</div>`;
       return `
-        <article class="work-item-card">
-          <div>
-            <strong>${item.name}</strong>
-            <span>${item.defaultType}</span>
+        <article class="work-map-row">
+          <div class="work-map-type">
+            <div>
+              <strong>${escapeHtml(type)}</strong>
+              <span>${typeItems.length} 个工作项 / ${typeCount} 条记录</span>
+            </div>
+            <div class="item-actions">
+              <button class="text-button" type="button" data-action="edit-work-type" data-id="${escapeHtml(type)}">编辑</button>
+              <button class="text-button danger" type="button" data-action="delete-work-type" data-id="${escapeHtml(type)}">删除</button>
+            </div>
           </div>
-          <p>${item.description || "暂无说明"}</p>
-          <div class="item-actions">
-            <small>${count} 条记录</small>
-            <button class="text-button" type="button" data-action="edit-work-item" data-id="${item.id}">编辑</button>
-            <button class="text-button danger" type="button" data-action="delete-work-item" data-id="${item.id}">删除</button>
+          <div class="work-map-items">
+            ${itemsHtml}
           </div>
         </article>
       `;
@@ -522,7 +561,7 @@ function resetEntryForm() {
   form.elements.recordId.value = "";
   form.elements.date.value = document.querySelector("#timeline-date").value || todayString();
   form.elements.type.value = state.workTypes[0] ?? "";
-  form.elements.workItemId.value = state.workItems[0]?.id ?? "";
+  renderWorkItemSelect();
   form.elements.start.value = "09:30";
   form.elements.end.value = "10:45";
   document.querySelector("#entry-title").textContent = "新增一条工作记录";
@@ -533,6 +572,7 @@ function fillForm(entry) {
   const form = document.querySelector("#entry-form");
   form.elements.date.value = entry.date ?? document.querySelector("#timeline-date").value;
   form.elements.type.value = entry.type;
+  renderWorkItemSelect(entry.workItemId);
   form.elements.workItemId.value = entry.workItemId;
   form.elements.content.value = entry.content;
   form.elements.note.value = entry.note;
@@ -667,7 +707,12 @@ function bindEvents() {
       return;
     }
     if (!formData.get("workItemId")) {
-      alert("请先在“关联工作”页面新建一个关联工作。");
+      alert("请先在“关联工作”页面为当前工作类型新建一个关联工作。");
+      return;
+    }
+    const selectedWorkItem = getWorkItem(formData.get("workItemId"));
+    if (!selectedWorkItem || selectedWorkItem.defaultType !== formData.get("type")) {
+      alert("请选择当前工作类型下的关联工作。");
       return;
     }
     if (!formData.get("content").trim()) {
@@ -739,6 +784,8 @@ function bindEvents() {
       return;
     }
     refreshUi();
+    document.querySelector('#entry-form select[name="type"]').value = item.defaultType;
+    renderWorkItemSelect(item.id);
     document.querySelector("#work-item-select").value = item.id;
     resetWorkItemForm();
     switchView("record");
@@ -789,6 +836,10 @@ function bindEvents() {
   });
 
   document.querySelector("#cancel-work-type-edit").addEventListener("click", resetWorkTypeForm);
+
+  document.querySelector('#entry-form select[name="type"]').addEventListener("change", () => {
+    renderWorkItemSelect();
+  });
 
   document.querySelector("#work-item-select").addEventListener("change", (event) => {
     const item = getWorkItem(event.target.value);
@@ -852,6 +903,7 @@ async function init() {
   document.querySelector("#timeline-date").value = today;
   document.querySelector("#stats-start-date").value = today;
   document.querySelector("#stats-end-date").value = today;
+  renderTypeSelects();
   resetEntryForm();
   resetWorkItemForm();
   resetWorkTypeForm();
