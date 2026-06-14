@@ -1,143 +1,13 @@
-const STORAGE_KEY = "daily-work-tracker-state-v1";
-const WORK_TYPES = ["开发实现", "需求沟通", "问题排查", "文档整理", "会议同步", "学习研究"];
+const STORAGE_KEY = "daily-work-tracker-state-v3";
 const TYPE_COLORS = ["#2563eb", "#059669", "#d97706", "#7c3aed", "#dc2626", "#0891b2"];
 
 const seedState = {
-  workItems: [
-    {
-      id: "work-001",
-      name: "每日工作记录工具",
-      defaultType: "开发实现",
-      description: "记录、统计和 JSON 本地存储方案。",
-    },
-    {
-      id: "work-002",
-      name: "客户需求整理",
-      defaultType: "需求沟通",
-      description: "整理客户反馈、需求优先级和待确认问题。",
-    },
-    {
-      id: "work-003",
-      name: "线上问题排查",
-      defaultType: "问题排查",
-      description: "定位线上异常、记录处理过程和结果。",
-    },
-    {
-      id: "work-004",
-      name: "同步方案说明",
-      defaultType: "文档整理",
-      description: "说明百度云盘同步目录、备份和文件结构。",
-    },
-    {
-      id: "work-005",
-      name: "A 项目",
-      defaultType: "开发实现",
-      description: "示例：同一项目分多天完成开发和优化，导出时合并为一项。",
-    },
-  ],
-  records: [
-    {
-      id: "20260614-001",
-      date: "2026-06-14",
-      type: "需求沟通",
-      workItemId: "work-002",
-      content: "整理了 6 条待确认需求，并标记优先级。",
-      note: "其中 2 条需要下次会议确认边界。",
-      start: "09:00",
-      end: "10:30",
-    },
-    {
-      id: "20260614-002",
-      date: "2026-06-14",
-      type: "开发实现",
-      workItemId: "work-001",
-      content: "完成首版 UI demo 的表单、时间线和统计视图。",
-      note: "先验证使用流程，再决定真实文件读写方式。",
-      start: "10:40",
-      end: "12:10",
-    },
-    {
-      id: "20260614-003",
-      date: "2026-06-14",
-      type: "问题排查",
-      workItemId: "work-003",
-      content: "定位到导入参数缺失导致的异常。",
-      note: "需要补一条参数校验。",
-      start: "14:00",
-      end: "15:05",
-    },
-    {
-      id: "20260614-004",
-      date: "2026-06-14",
-      type: "文档整理",
-      workItemId: "work-004",
-      content: "补充 JSON 文件放置和备份说明。",
-      note: "后续要加自动备份提醒。",
-      start: "16:20",
-      end: "17:15",
-    },
-    {
-      id: "20260613-001",
-      date: "2026-06-13",
-      type: "开发实现",
-      workItemId: "work-001",
-      content: "分析每日记录工具的 JSON 结构和统计字段。",
-      note: "这条用于展示跨天同一工作项的内容合并。",
-      start: "19:10",
-      end: "20:00",
-    },
-    {
-      id: "20260608-001",
-      date: "2026-06-08",
-      type: "开发实现",
-      workItemId: "work-005",
-      content: "完成 IT 模块的基础开发。",
-      note: "周报导出时会和同项目后续优化合并。",
-      start: "10:00",
-      end: "11:40",
-    },
-    {
-      id: "20260610-001",
-      date: "2026-06-10",
-      type: "开发实现",
-      workItemId: "work-005",
-      content: "优化 IT 模块的数据处理流程。",
-      note: "和周一记录属于同一个关联工作。",
-      start: "15:00",
-      end: "16:20",
-    },
-  ],
+  workTypes: [],
+  workItems: [],
+  records: [],
 };
 
-const sampleEntries = [
-  {
-    type: "开发实现",
-    workItemId: "work-001",
-    content: "完成首版 UI 结构：新增记录、今日时间线、统计分析、JSON 预览。",
-    note: "下一步需要确认关联工作维护方式和统计合并规则。",
-    start: "09:30",
-    end: "10:45",
-  },
-  {
-    type: "需求沟通",
-    workItemId: "work-002",
-    content: "确认统计按开始时间所在日期归档，跨天记录后续单独处理。",
-    note: "先不做复杂排班，只记录已完成工作。",
-    start: "11:00",
-    end: "11:35",
-  },
-  {
-    type: "学习研究",
-    workItemId: "work-001",
-    content: "研究本地 JSON 存储和浏览器文件访问方案。",
-    note: "真实版本可选择手动导入导出，或使用浏览器文件权限。",
-    start: "19:20",
-    end: "20:10",
-  },
-];
-
 let state = loadState();
-let sampleIndex = 0;
 let activeStatsRange = "day";
 
 function loadState() {
@@ -146,6 +16,7 @@ function loadState() {
     if (!saved) return structuredClone(seedState);
     const parsed = JSON.parse(saved);
     return {
+      workTypes: Array.isArray(parsed.workTypes) ? parsed.workTypes : structuredClone(seedState.workTypes),
       workItems: Array.isArray(parsed.workItems) ? parsed.workItems : structuredClone(seedState.workItems),
       records: Array.isArray(parsed.records) ? parsed.records : structuredClone(seedState.records),
     };
@@ -263,9 +134,45 @@ function renderWorkItemSelect() {
     .join("");
 }
 
+function renderTypeSelects() {
+  const options = state.workTypes.map((type) => `<option>${type}</option>`).join("");
+  document.querySelector('#entry-form select[name="type"]').innerHTML = options;
+  document.querySelector("#work-item-type-select").innerHTML = options;
+}
+
+function renderWorkTypes() {
+  const list = document.querySelector("#work-type-list");
+  document.querySelector("#work-type-count").textContent = `${state.workTypes.length} 项`;
+  if (state.workTypes.length === 0) {
+    list.innerHTML = `<div class="empty-state">还没有工作类型。先在左侧表单新建一个类型。</div>`;
+    return;
+  }
+  list.innerHTML = state.workTypes
+    .map((type) => {
+      const count = state.records.filter((record) => record.type === type).length;
+      return `
+        <article class="work-item-card">
+          <div>
+            <strong>${type}</strong>
+            <span>${count} 条记录</span>
+          </div>
+          <div class="item-actions">
+            <button class="text-button" type="button" data-action="edit-work-type" data-id="${type}">编辑</button>
+            <button class="text-button danger" type="button" data-action="delete-work-type" data-id="${type}">删除</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function renderWorkItems() {
   const list = document.querySelector("#work-item-list");
   document.querySelector("#work-item-count").textContent = `${state.workItems.length} 项`;
+  if (state.workItems.length === 0) {
+    list.innerHTML = `<div class="empty-state">还没有关联工作。先新建工作类型，再创建关联工作。</div>`;
+    return;
+  }
   list.innerHTML = state.workItems
     .map((item) => {
       const count = state.records.filter((record) => record.workItemId === item.id).length;
@@ -480,6 +387,7 @@ function renderJson() {
       browserStorageKey: STORAGE_KEY,
       note: "当前纯前端版本保存在浏览器 localStorage；浏览器不能静默写入同目录 JSON 文件。",
     },
+    workTypes: state.workTypes,
     workItems: state.workItems,
     records: state.records,
   };
@@ -487,7 +395,9 @@ function renderJson() {
 }
 
 function refreshUi() {
+  renderTypeSelects();
   renderWorkItemSelect();
+  renderWorkTypes();
   renderWorkItems();
   renderTimeline();
   renderStats();
@@ -512,6 +422,8 @@ function resetEntryForm() {
   form.reset();
   form.elements.recordId.value = "";
   form.elements.date.value = document.querySelector("#timeline-date").value || todayString();
+  form.elements.type.value = state.workTypes[0] ?? "";
+  form.elements.workItemId.value = state.workItems[0]?.id ?? "";
   form.elements.start.value = "09:30";
   form.elements.end.value = "10:45";
   document.querySelector("#entry-title").textContent = "新增一条工作记录";
@@ -552,7 +464,7 @@ function resetWorkItemForm() {
   form.elements.workItemId.value = "";
   form.elements.name.value = "";
   form.elements.description.value = "";
-  form.elements.defaultType.value = WORK_TYPES[0];
+  form.elements.defaultType.value = state.workTypes[0] ?? "";
   document.querySelector("#work-item-title").textContent = "维护关联工作";
   document.querySelector("#work-item-submit-label").textContent = "新建关联工作";
 }
@@ -578,6 +490,41 @@ function deleteWorkItem(id) {
   if (!confirm("确认删除这个关联工作？")) return;
   state.workItems = state.workItems.filter((item) => item.id !== id);
   saveState();
+  refreshUi();
+}
+
+function resetWorkTypeForm() {
+  const form = document.querySelector("#work-type-form");
+  form.reset();
+  form.elements.oldType.value = "";
+  form.elements.typeName.value = "";
+  document.querySelector("#work-type-title").textContent = "维护工作类型";
+  document.querySelector("#work-type-submit-label").textContent = "新建工作类型";
+}
+
+function editWorkType(type) {
+  const form = document.querySelector("#work-type-form");
+  form.elements.oldType.value = type;
+  form.elements.typeName.value = type;
+  document.querySelector("#work-type-title").textContent = "编辑工作类型";
+  document.querySelector("#work-type-submit-label").textContent = "保存修改";
+}
+
+function deleteWorkType(type) {
+  const usedByRecords = state.records.some((record) => record.type === type);
+  const usedByWorkItems = state.workItems.some((item) => item.defaultType === type);
+  if (usedByRecords || usedByWorkItems) {
+    alert("这个工作类型已经被记录或关联工作引用，不能直接删除。可以先编辑名称，或调整相关数据后再删。");
+    return;
+  }
+  if (state.workTypes.length <= 1) {
+    alert("至少需要保留一个工作类型。");
+    return;
+  }
+  if (!confirm("确认删除这个工作类型？")) return;
+  state.workTypes = state.workTypes.filter((item) => item !== type);
+  saveState();
+  resetWorkTypeForm();
   refreshUi();
 }
 
@@ -612,14 +559,6 @@ function bindEvents() {
     button.addEventListener("click", () => switchView(button.dataset.view));
   });
 
-  document.querySelector("#fill-sample").addEventListener("click", () => {
-    fillForm({
-      ...sampleEntries[sampleIndex % sampleEntries.length],
-      date: document.querySelector("#timeline-date").value || todayString(),
-    });
-    sampleIndex += 1;
-  });
-
   document.querySelector("#cancel-entry-edit").addEventListener("click", resetEntryForm);
 
   document.querySelector("#entry-form").addEventListener("submit", (event) => {
@@ -627,6 +566,18 @@ function bindEvents() {
     const form = event.currentTarget;
     const formData = new FormData(form);
     const id = formData.get("recordId");
+    if (!formData.get("type")) {
+      alert("请先在“关联工作”页面新建一个工作类型。");
+      return;
+    }
+    if (!formData.get("workItemId")) {
+      alert("请先在“关联工作”页面新建一个关联工作。");
+      return;
+    }
+    if (!formData.get("content").trim()) {
+      alert("请填写工作内容。");
+      return;
+    }
     const nextRecord = {
       id: id || nextId(formData.get("date").replaceAll("-", ""), state.records),
       date: formData.get("date"),
@@ -656,9 +607,18 @@ function bindEvents() {
     const form = event.currentTarget;
     const formData = new FormData(form);
     const id = formData.get("workItemId");
+    const name = formData.get("name").trim();
+    if (state.workTypes.length === 0) {
+      alert("请先新建一个工作类型。");
+      return;
+    }
+    if (!name) {
+      alert("请填写关联工作名称。");
+      return;
+    }
     const item = {
       id: id || nextId("work", state.workItems),
-      name: formData.get("name").trim(),
+      name,
       defaultType: formData.get("defaultType"),
       description: formData.get("description").trim(),
     };
@@ -677,6 +637,44 @@ function bindEvents() {
   });
 
   document.querySelector("#cancel-work-item-edit").addEventListener("click", resetWorkItemForm);
+
+  document.querySelector("#work-type-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const oldType = formData.get("oldType");
+    const typeName = formData.get("typeName").trim();
+
+    if (!typeName) {
+      alert("请填写工作类型名称。");
+      return;
+    }
+
+    if (state.workTypes.includes(typeName) && typeName !== oldType) {
+      alert("这个工作类型已经存在。");
+      return;
+    }
+
+    if (oldType) {
+      state.workTypes = state.workTypes.map((type) => (type === oldType ? typeName : type));
+      state.records = state.records.map((record) => ({
+        ...record,
+        type: record.type === oldType ? typeName : record.type,
+      }));
+      state.workItems = state.workItems.map((item) => ({
+        ...item,
+        defaultType: item.defaultType === oldType ? typeName : item.defaultType,
+      }));
+    } else {
+      state.workTypes.push(typeName);
+    }
+
+    saveState();
+    resetWorkTypeForm();
+    refreshUi();
+  });
+
+  document.querySelector("#cancel-work-type-edit").addEventListener("click", resetWorkTypeForm);
 
   document.querySelector("#work-item-select").addEventListener("change", (event) => {
     const item = getWorkItem(event.target.value);
@@ -712,6 +710,8 @@ function bindEvents() {
     if (action === "delete-record") deleteRecord(id);
     if (action === "edit-work-item") editWorkItem(id);
     if (action === "delete-work-item") deleteWorkItem(id);
+    if (action === "edit-work-type") editWorkType(id);
+    if (action === "delete-work-type") deleteWorkType(id);
   });
 
   document.querySelector("#export-report").addEventListener("click", openExportModal);
@@ -739,6 +739,7 @@ function init() {
   document.querySelector("#stats-end-date").value = today;
   resetEntryForm();
   resetWorkItemForm();
+  resetWorkTypeForm();
   bindEvents();
   refreshUi();
 }

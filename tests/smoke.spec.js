@@ -11,6 +11,15 @@ test("daily work tracker core flow", async ({ page }) => {
   await page.goto(`file://${path.resolve(__dirname, "../index.html")}`);
   await expect(page.getByRole("heading", { name: "新增一条工作记录" })).toBeVisible();
 
+  await page.getByRole("button", { name: "关联工作" }).click();
+  await page.locator('input[name="typeName"]').fill("开发实现");
+  await page.getByRole("button", { name: "新建工作类型" }).click();
+  await expect(page.locator("#work-type-list")).toContainText("开发实现");
+
+  await page.locator('input[name="name"]').fill("每日工作记录工具");
+  await page.locator('textarea[name="description"]').fill("用于验证真实空数据流程。");
+  await page.getByRole("button", { name: "新建关联工作" }).click();
+
   const today = new Date().toISOString().slice(0, 10);
   await page.locator('select[name="workItemId"]').selectOption({ label: "每日工作记录工具" });
   await page.locator('input[name="date"]').fill(today);

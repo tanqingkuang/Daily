@@ -227,6 +227,10 @@ button {
   gap: 20px;
 }
 
+.stacked-grid {
+  align-items: start;
+}
+
 .entry-panel,
 .day-summary,
 .stat-panel {
