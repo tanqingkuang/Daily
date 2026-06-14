@@ -123,50 +123,6 @@ dist/mac-arm64/每日工作记录.app
 dist/每日工作记录.exe
 ```
 
-## GitHub Release 怎么发布
-
-Release 是 GitHub 提供的“版本发布页”。你可以把构建好的 `exe`、`app.zip` 上传到 Release，别人就能直接下载。
-
-手动发布流程：
-
-1. 先本地构建：
-
-   ```bash
-   npm run build:mac
-   npm run build:win
-   ```
-
-2. 把 macOS 的 `.app` 压缩成 zip。因为 `.app` 本质是一个目录，不能像 exe 一样直接当单文件上传：
-
-   ```bash
-   ditto -c -k --sequesterRsrc --keepParent "dist/mac-arm64/每日工作记录.app" "dist/每日工作记录-mac.zip"
-   ```
-
-3. 打开 GitHub 仓库的 Releases 页面：
-
-   ```text
-   https://github.com/tanqingkuang/Daily/releases
-   ```
-
-4. 点击 `Draft a new release`。
-
-5. 填写 tag，例如：
-
-   ```text
-   v1.0.3
-   ```
-
-6. 上传附件：
-
-   ```text
-   dist/每日工作记录.exe
-   dist/每日工作记录-mac.zip
-   ```
-
-7. 发布后，GitHub 页面就会出现可下载的 exe 和 mac zip。
-
-后续也可以配置 GitHub Actions，让每次创建 tag 时自动构建并上传 Release 附件。
-
 ## 数据格式
 
 `daily-data.json` 当前格式：
