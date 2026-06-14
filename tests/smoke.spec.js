@@ -1,5 +1,11 @@
 const { test, expect } = require("@playwright/test");
+const fs = require("fs");
 const path = require("path");
+
+test.beforeEach(() => {
+  fs.rmSync(path.resolve(__dirname, "../test-data.json"), { force: true });
+  fs.rmSync(path.resolve(__dirname, "../test-data.json.tmp"), { force: true });
+});
 
 test("daily work tracker core flow", async ({ page }) => {
   const errors = [];
@@ -8,7 +14,7 @@ test("daily work tracker core flow", async ({ page }) => {
     if (message.type() === "error") errors.push(message.text());
   });
 
-  await page.goto(`file://${path.resolve(__dirname, "../index.html")}`);
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "新增一条工作记录" })).toBeVisible();
 
   await page.getByRole("button", { name: "关联工作" }).click();

@@ -45,8 +45,8 @@
         <div class="sync-box">
           <div class="sync-icon"><i data-lucide="cloud"></i></div>
           <div>
-            <strong>数据保存</strong>
-            <p>当前纯前端版保存在浏览器本地；如需自动写入百度云盘文件，可再加本地写文件版本。</p>
+            <strong id="sync-status">正在检测保存方式</strong>
+            <p id="sync-detail">双击启动脚本后，会自动写入同目录 daily-data.json。</p>
           </div>
         </div>
       </aside>
@@ -311,7 +311,7 @@
           <div class="section-head">
             <div>
               <h3>JSON 数据预览</h3>
-              <p>真实版本会把这些内容写入百度云盘同步目录中的 JSON 文件。</p>
+              <p>通过双击启动时，这些内容会自动写入同目录 daily-data.json。</p>
             </div>
             <button class="primary-button" type="button" id="copy-json">
               <i data-lucide="copy"></i>

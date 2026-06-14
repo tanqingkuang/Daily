@@ -2,13 +2,15 @@ const STORAGE_KEY = "daily-work-tracker-state-v4";
 const TYPE_COLORS = ["#2563eb", "#059669", "#d97706", "#7c3aed", "#dc2626", "#0891b2"];
 
 const seedState = {
+  schemaVersion: 1,
   workTypes: [],
   workItems: [],
   records: [],
 };
 
-let state = loadState();
+let state = structuredClone(seedState);
 let activeStatsRange = "day";
+let persistenceMode = "browser";
 
 function loadState() {
   try {
@@ -25,8 +27,78 @@ function loadState() {
   }
 }
 
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function normalizeState(value) {
+  return {
+    schemaVersion: 1,
+    workTypes: Array.isArray(value?.workTypes) ? value.workTypes : [],
+    workItems: Array.isArray(value?.workItems) ? value.workItems : [],
+    records: Array.isArray(value?.records) ? value.records : [],
+  };
+}
+
+function setPersistenceStatus(message, mode = persistenceMode) {
+  const status = document.querySelector("#sync-status");
+  const detail = document.querySelector("#sync-detail");
+  if (status) status.textContent = message;
+  if (!detail) return;
+  detail.textContent =
+    mode === "server"
+      ? "通过本地服务自动保存到 daily-data.json，适合放在百度云盘同步目录。"
+      : "当前使用浏览器本地存储；双击启动脚本后可自动写入 daily-data.json。";
+}
+
+async function loadStateFromStorage() {
+  if (window.location.protocol !== "file:") {
+    try {
+      const response = await fetch("/api/state", { cache: "no-store" });
+      if (response.ok) {
+        persistenceMode = "server";
+        setPersistenceStatus("自动保存到 JSON", "server");
+        return normalizeState(await response.json());
+      }
+    } catch {
+      persistenceMode = "browser";
+    }
+  }
+
+  persistenceMode = "browser";
+  setPersistenceStatus("浏览器本地保存", "browser");
+  return normalizeState(loadState());
+}
+
+async function writeState() {
+  const payload = normalizeState(state);
+  if (persistenceMode === "server") {
+    const response = await fetch("/api/state", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to persist state");
+    }
+    setPersistenceStatus("已保存到 JSON", "server");
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  setPersistenceStatus("已保存到浏览器", "browser");
+}
+
+async function saveState() {
+  setPersistenceStatus("正在保存...");
+  await writeState();
+}
+
+async function persistAndRefresh(afterRefresh) {
+  try {
+    await saveState();
+  } catch {
+    alert("保存失败。请确认本地服务仍在运行，然后再试一次。");
+    setPersistenceStatus("保存失败");
+  }
+  refreshUi();
+  if (typeof afterRefresh === "function") afterRefresh();
 }
 
 function todayString() {
@@ -384,8 +456,13 @@ function renderJson() {
   const data = {
     schemaVersion: 1,
     storage: {
-      browserStorageKey: STORAGE_KEY,
-      note: "当前纯前端版本保存在浏览器 localStorage；浏览器不能静默写入同目录 JSON 文件。",
+      mode: persistenceMode,
+      file: persistenceMode === "server" ? "daily-data.json" : null,
+      browserStorageKey: persistenceMode === "browser" ? STORAGE_KEY : null,
+      note:
+        persistenceMode === "server"
+          ? "当前通过本地服务自动保存到同目录 daily-data.json。"
+          : "当前直接打开 HTML，数据保存在浏览器 localStorage。双击启动脚本后会自动写入 daily-data.json。",
     },
     workTypes: state.workTypes,
     workItems: state.workItems,
@@ -451,11 +528,10 @@ function editRecord(id) {
   switchView("record");
 }
 
-function deleteRecord(id) {
+async function deleteRecord(id) {
   if (!confirm("确认删除这条工作记录？")) return;
   state.records = state.records.filter((record) => record.id !== id);
-  saveState();
-  refreshUi();
+  await persistAndRefresh();
 }
 
 function resetWorkItemForm() {
@@ -481,7 +557,7 @@ function editWorkItem(id) {
   document.querySelector("#work-item-submit-label").textContent = "保存修改";
 }
 
-function deleteWorkItem(id) {
+async function deleteWorkItem(id) {
   const used = state.records.some((record) => record.workItemId === id);
   if (used) {
     alert("这个关联工作已经被记录引用，不能直接删除。可以先编辑名称，或者删除相关记录后再删。");
@@ -489,8 +565,7 @@ function deleteWorkItem(id) {
   }
   if (!confirm("确认删除这个关联工作？")) return;
   state.workItems = state.workItems.filter((item) => item.id !== id);
-  saveState();
-  refreshUi();
+  await persistAndRefresh();
 }
 
 function resetWorkTypeForm() {
@@ -510,7 +585,7 @@ function editWorkType(type) {
   document.querySelector("#work-type-submit-label").textContent = "保存修改";
 }
 
-function deleteWorkType(type) {
+async function deleteWorkType(type) {
   const usedByRecords = state.records.some((record) => record.type === type);
   const usedByWorkItems = state.workItems.some((item) => item.defaultType === type);
   if (usedByRecords || usedByWorkItems) {
@@ -523,9 +598,8 @@ function deleteWorkType(type) {
   }
   if (!confirm("确认删除这个工作类型？")) return;
   state.workTypes = state.workTypes.filter((item) => item !== type);
-  saveState();
   resetWorkTypeForm();
-  refreshUi();
+  await persistAndRefresh();
 }
 
 function openExportModal() {
@@ -561,7 +635,7 @@ function bindEvents() {
 
   document.querySelector("#cancel-entry-edit").addEventListener("click", resetEntryForm);
 
-  document.querySelector("#entry-form").addEventListener("submit", (event) => {
+  document.querySelector("#entry-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -596,13 +670,19 @@ function bindEvents() {
     }
 
     document.querySelector("#timeline-date").value = nextRecord.date;
-    saveState();
+    try {
+      await saveState();
+    } catch {
+      alert("保存失败。请确认本地服务仍在运行，然后再试一次。");
+      setPersistenceStatus("保存失败");
+      return;
+    }
     resetEntryForm();
     refreshUi();
     switchView("timeline");
   });
 
-  document.querySelector("#work-item-form").addEventListener("submit", (event) => {
+  document.querySelector("#work-item-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -629,7 +709,13 @@ function bindEvents() {
       state.workItems.push(item);
     }
 
-    saveState();
+    try {
+      await saveState();
+    } catch {
+      alert("保存失败。请确认本地服务仍在运行，然后再试一次。");
+      setPersistenceStatus("保存失败");
+      return;
+    }
     refreshUi();
     document.querySelector("#work-item-select").value = item.id;
     resetWorkItemForm();
@@ -638,7 +724,7 @@ function bindEvents() {
 
   document.querySelector("#cancel-work-item-edit").addEventListener("click", resetWorkItemForm);
 
-  document.querySelector("#work-type-form").addEventListener("submit", (event) => {
+  document.querySelector("#work-type-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -669,7 +755,13 @@ function bindEvents() {
       state.workTypes.push(typeName);
     }
 
-    saveState();
+    try {
+      await saveState();
+    } catch {
+      alert("保存失败。请确认本地服务仍在运行，然后再试一次。");
+      setPersistenceStatus("保存失败");
+      return;
+    }
     resetWorkTypeForm();
     refreshUi();
   });
@@ -702,16 +794,16 @@ function bindEvents() {
   document.querySelector("#stats-start-date").addEventListener("change", renderStats);
   document.querySelector("#stats-end-date").addEventListener("change", renderStats);
 
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-action]");
     if (!button) return;
     const { action, id } = button.dataset;
     if (action === "edit-record") editRecord(id);
-    if (action === "delete-record") deleteRecord(id);
+    if (action === "delete-record") await deleteRecord(id);
     if (action === "edit-work-item") editWorkItem(id);
-    if (action === "delete-work-item") deleteWorkItem(id);
+    if (action === "delete-work-item") await deleteWorkItem(id);
     if (action === "edit-work-type") editWorkType(id);
-    if (action === "delete-work-type") deleteWorkType(id);
+    if (action === "delete-work-type") await deleteWorkType(id);
   });
 
   document.querySelector("#export-report").addEventListener("click", openExportModal);
@@ -732,7 +824,8 @@ function bindEvents() {
   });
 }
 
-function init() {
+async function init() {
+  state = await loadStateFromStorage();
   const today = todayString();
   document.querySelector("#timeline-date").value = today;
   document.querySelector("#stats-start-date").value = today;
