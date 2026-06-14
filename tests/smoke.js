@@ -4,7 +4,8 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
-const testDataFile = path.join(root, "test-data.json");
+const portableDataDir = path.join(root, ".tmp-portable-data");
+const testDataFile = path.join(portableDataDir, "test-data.json");
 
 async function switchView(page, viewName) {
   await page.evaluate((targetView) => {
@@ -18,8 +19,8 @@ async function switchView(page, viewName) {
 }
 
 async function main() {
-  fs.rmSync(testDataFile, { force: true });
-  fs.rmSync(`${testDataFile}.tmp`, { force: true });
+  fs.rmSync(portableDataDir, { recursive: true, force: true });
+  fs.mkdirSync(portableDataDir, { recursive: true });
 
   const electronApp = await electron.launch({
     args: ["."],
@@ -27,6 +28,7 @@ async function main() {
     env: {
       ...process.env,
       DATA_FILE: "test-data.json",
+      PORTABLE_EXECUTABLE_DIR: portableDataDir,
     },
   });
   const page = await electronApp.firstWindow();
@@ -110,8 +112,7 @@ async function main() {
     assert.deepStrictEqual(errors, []);
   } finally {
     await electronApp.close();
-    fs.rmSync(testDataFile, { force: true });
-    fs.rmSync(`${testDataFile}.tmp`, { force: true });
+    fs.rmSync(portableDataDir, { recursive: true, force: true });
   }
 }
 

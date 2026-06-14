@@ -10,6 +10,9 @@ const EMPTY_STATE = {
 };
 
 function getDataDirectory() {
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    return process.env.PORTABLE_EXECUTABLE_DIR;
+  }
   if (!app.isPackaged) return __dirname;
   if (process.platform === "darwin") {
     return path.dirname(path.dirname(path.dirname(path.dirname(process.execPath))));
