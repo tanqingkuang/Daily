@@ -1,6 +1,6 @@
 {
   "name": "daily",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "每日工作时间记录与统计桌面应用",
   "main": "electron-main.js",
   "scripts": {
@@ -20,6 +20,7 @@
       "index.html",
       "styles.css",
       "app.js",
+      "lucide-local.js",
       "electron-main.js",
       "preload.js"
     ],

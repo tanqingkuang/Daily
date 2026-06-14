@@ -344,22 +344,23 @@ function renderTimeline() {
   list.innerHTML = dayRecords
     .map((record) => {
       const workItem = getWorkItem(record.workItemId);
+      const safeId = escapeHtml(record.id);
       return `
         <article class="timeline-item">
           <div class="time-block">
-            <strong>${record.start} - ${record.end}</strong><br />
+            <strong>${escapeHtml(record.start)} - ${escapeHtml(record.end)}</strong><br />
             <span>${formatDuration(record.start, record.end)}</span>
           </div>
           <div class="timeline-main">
-            <h4>${workItem?.name ?? "未命名工作"}</h4>
-            <p>${record.content}</p>
-            ${record.note ? `<p class="note-line">${record.note}</p>` : ""}
+            <h4>${escapeHtml(workItem?.name ?? "未命名工作")}</h4>
+            <p>${escapeHtml(record.content)}</p>
+            ${record.note ? `<p class="note-line">${escapeHtml(record.note)}</p>` : ""}
             <div class="item-actions">
-              <button class="text-button" type="button" data-action="edit-record" data-id="${record.id}">编辑</button>
-              <button class="text-button danger" type="button" data-action="delete-record" data-id="${record.id}">删除</button>
+              <button class="text-button" type="button" data-action="edit-record" data-id="${safeId}">编辑</button>
+              <button class="text-button danger" type="button" data-action="delete-record" data-id="${safeId}">删除</button>
             </div>
           </div>
-          <span class="tag">${record.type}</span>
+          <span class="tag">${escapeHtml(record.type)}</span>
         </article>
       `;
     })
@@ -400,7 +401,7 @@ function updateSummary() {
         .join("")
     : `<span style="--w: 100%; --c: #e5e7eb"></span>`;
   legend.innerHTML = typeStats
-    .map((item) => `<span><b style="background:${item.color}"></b>${item.type}</span>`)
+    .map((item) => `<span><b style="background:${item.color}"></b>${escapeHtml(item.type)}</span>`)
     .join("");
 }
 
@@ -417,7 +418,7 @@ function renderStats() {
     ? typeStats
         .map((item) => {
           const percent = totalMinutes === 0 ? 0 : (item.minutes / totalMinutes) * 100;
-          return `<div><span>${item.type}</span><b><i style="width: ${percent}%; background:${item.color}"></i></b><strong>${percent.toFixed(1)}%</strong></div>`;
+          return `<div><span>${escapeHtml(item.type)}</span><b><i style="width: ${percent}%; background:${item.color}"></i></b><strong>${percent.toFixed(1)}%</strong></div>`;
         })
         .join("")
     : `<div class="empty-state compact">当前范围没有记录。</div>`;
@@ -441,9 +442,9 @@ function renderStats() {
         .map(
           (row) => `
             <tr>
-              <td>${row.name}</td>
+              <td>${escapeHtml(row.name)}</td>
               <td>${formatReportDuration(row.minutes)}</td>
-              <td>${row.contents.join("；")}</td>
+              <td>${row.contents.map((content) => escapeHtml(content)).join("；")}</td>
             </tr>
           `,
         )

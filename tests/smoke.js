@@ -49,7 +49,7 @@ async function main() {
         workItems: [
           {
             id: "work-smoke-001",
-            name: "每日工作记录工具",
+            name: "每日工作记录工具 <script>bad()</script>",
             defaultType: "开发实现",
             description: "用于验证真实空数据流程。",
           },
@@ -66,8 +66,8 @@ async function main() {
             date,
             type: "开发实现",
             workItemId: "work-smoke-001",
-            content: "Playwright 自验证流程开发。",
-            note: "确认新增、统计、导出流程可用。",
+            content: "<b>Playwright 自验证流程开发。</b>",
+            note: '<img src=x onerror="window.__xss = true">确认新增、统计、导出流程可用。',
             start: "08:30",
             end: "09:15",
           },
@@ -76,6 +76,7 @@ async function main() {
     }, today);
     await page.reload();
     await page.waitForSelector("#entry-title", { timeout: 10000 });
+    assert.strictEqual(await page.locator('script[src^="https://unpkg.com"]').count(), 0);
     assert(!(await page.locator(".nav-list").textContent()).includes("JSON 数据"));
 
     await switchView(page, "record");
@@ -97,9 +98,15 @@ async function main() {
     await switchView(page, "timeline");
     await page.waitForSelector("#timeline-list");
     assert((await page.locator("#timeline-list").textContent()).includes("Playwright 自验证流程开发。"));
+    assert((await page.locator("#timeline-list").textContent()).includes("<b>Playwright 自验证流程开发。</b>"));
+    assert.strictEqual(await page.locator("#timeline-list img").count(), 0);
+    assert.strictEqual(await page.locator("#timeline-list script").count(), 0);
 
     await switchView(page, "stats");
     assert((await page.locator("#stats-work-table").textContent()).includes("Playwright 自验证流程开发。"));
+    assert((await page.locator("#stats-work-table").textContent()).includes("<b>Playwright 自验证流程开发。</b>"));
+    assert.strictEqual(await page.locator("#stats-work-table b").count(), 0);
+    assert.strictEqual(await page.locator("#stats-work-table img").count(), 0);
 
     await page.getByRole("button", { name: "导出" }).click();
     await page.waitForSelector("#export-markdown");
