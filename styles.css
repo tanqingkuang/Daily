@@ -90,6 +90,25 @@ button {
   line-height: 1.2;
 }
 
+.brand-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 7px;
+  border: 1px solid #b9d7ee;
+  border-radius: 999px;
+  color: #1769aa;
+  background: rgba(255, 255, 255, 0.56);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .brand p {
   margin-top: 4px;
   color: #6a8199;
