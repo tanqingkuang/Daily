@@ -18,6 +18,9 @@ function getDataDirectory() {
 }
 
 function getDataFile() {
+  if (process.env.DATA_FILE) {
+    return path.resolve(getDataDirectory(), process.env.DATA_FILE);
+  }
   return path.join(getDataDirectory(), "daily-data.json");
 }
 
@@ -81,5 +84,5 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  app.quit();
 });

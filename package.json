@@ -7,8 +7,7 @@
     "build:mac": "electron-builder --mac dir",
     "build:win": "electron-builder --win portable",
     "desktop": "electron .",
-    "start": "node server.js",
-    "test": "playwright test"
+    "test": "node tests/smoke.js"
   },
   "keywords": [],
   "author": "zhangmeng",
@@ -36,7 +35,6 @@
     }
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
     "electron": "^42.4.0",
     "electron-builder": "^26.15.3",
     "playwright": "^1.60.0"
