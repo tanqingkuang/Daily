@@ -1,4 +1,4 @@
-const STORAGE_KEY = "daily-work-tracker-state-v3";
+const STORAGE_KEY = "daily-work-tracker-state-v4";
 const TYPE_COLORS = ["#2563eb", "#059669", "#d97706", "#7c3aed", "#dc2626", "#0891b2"];
 
 const seedState = {
