@@ -1,5 +1,15 @@
 # 更新日志
 
+## 未发布
+
+- 日期：2026-06-16
+- 变更摘要：新增 GitHub Actions CI 工作流，push、pull request 和手动触发时会在 macOS runner 上执行 `npm ci`、`npm test`、`npm run build:mac`，并上传 macOS app zip 构建产物。
+- 测试入口：`npm test`。
+- 测试结果：通过。
+- 开发目录 app 编译：已执行 `npm run build:mac`。
+- `daily-data.json` 格式影响：无。
+- 正式使用目录同步：未同步。
+
 ## V1.0.4
 
 - 日期：2026-06-16
