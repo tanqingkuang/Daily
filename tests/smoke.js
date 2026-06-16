@@ -147,7 +147,13 @@ async function main() {
     await page.locator('#entry-form input[name="start"]').fill("9:5");
     await page.locator('#entry-form input[name="end"]').fill("10:5");
     await page.locator('#entry-form button[type="submit"]').click();
-    await page.waitForSelector("#timeline-view.active", { timeout: 10000 });
+    // 新增后应停留在记录页，不自动跳转到时间线
+    await page.waitForFunction(
+      () => document.querySelector("#record-mini-timeline").textContent.includes("需求评审"),
+      { timeout: 10000 }
+    );
+    assert(await page.locator("#record-view.active").count(), "新增后应停留在记录页");
+    assert.strictEqual(await page.locator("#timeline-view.active").count(), 0);
 
     // 提交成功后，开始时间应同步为刚才的结束时间（10:05）
     assert.strictEqual(await page.locator('#entry-form input[name="start"]').inputValue(), "10:05");

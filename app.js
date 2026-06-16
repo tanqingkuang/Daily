@@ -795,7 +795,10 @@ function bindEvents() {
     // 新增成功后，把结束时间同步为下一条的开始时间，下次只需改结束时间
     resetEntryForm(id ? undefined : nextRecord.end);
     refreshUi();
-    switchView("timeline");
+    // 编辑已有记录后回到时间线；新增后留在记录页，便于连续录入
+    if (id) {
+      switchView("timeline");
+    }
   });
 
   document.querySelector("#work-item-form").addEventListener("submit", async (event) => {
