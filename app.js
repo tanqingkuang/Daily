@@ -10,6 +10,10 @@ const seedState = {
 
 let state = structuredClone(seedState);
 let activeStatsRange = "day";
+const statsFilters = {
+  excludedTypes: new Set(),
+  excludedWorkItems: new Set(),
+};
 let persistenceMode = "browser";
 let dataFilePath = "daily-data.json";
 
@@ -246,6 +250,14 @@ function formatReportDuration(minutes) {
   return `${hours.toFixed(1)}h`;
 }
 
+function formatDetailedDuration(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const restMinutes = minutes % 60;
+  if (hours === 0) return `${restMinutes}min`;
+  if (restMinutes === 0) return `${hours}h`;
+  return `${hours}h${restMinutes}min`;
+}
+
 function nextId(prefix, collection) {
   return `${prefix}-${Date.now().toString(36)}-${String(collection.length + 1).padStart(3, "0")}`;
 }
@@ -401,10 +413,16 @@ function renderTimeline() {
 function renderMiniTimeline() {
   const list = document.querySelector("#record-mini-timeline");
   if (!list) return;
+  const duration = document.querySelector("#record-mini-timeline-duration");
   const selectedDate = document.querySelector("#timeline-date").value || todayString();
   const dayRecords = state.records
     .filter((record) => record.date === selectedDate)
     .sort((a, b) => a.start.localeCompare(b.start));
+  const totalMinutes = dayRecords.reduce((sum, record) => sum + recordMinutes(record), 0);
+
+  if (duration) {
+    duration.textContent = formatDetailedDuration(totalMinutes);
+  }
 
   if (dayRecords.length === 0) {
     list.innerHTML = `<div class="mini-timeline-empty">这一天还没有记录。</div>`;
@@ -439,6 +457,40 @@ function getTypeStats(records) {
     .sort((a, b) => b.minutes - a.minutes);
 }
 
+function getFilteredStatsRecords(records) {
+  return records.filter((record) => {
+    return !statsFilters.excludedTypes.has(record.type) && !statsFilters.excludedWorkItems.has(record.workItemId);
+  });
+}
+
+function getStatsWorkGroups(records, selectedRecords) {
+  const selectedIds = new Set(selectedRecords.map((record) => record.id));
+  const groups = new Map();
+
+  records.forEach((record) => {
+    const workItem = getWorkItem(record.workItemId);
+    const group = groups.get(record.workItemId) ?? {
+      id: record.workItemId,
+      name: workItem?.name ?? "未命名工作",
+      type: workItem?.defaultType ?? record.type,
+      minutes: 0,
+      selectedMinutes: 0,
+      contents: [],
+      selectedContents: [],
+    };
+    const minutes = recordMinutes(record);
+    group.minutes += minutes;
+    group.contents.push(record.content);
+    if (selectedIds.has(record.id)) {
+      group.selectedMinutes += minutes;
+      group.selectedContents.push(record.content);
+    }
+    groups.set(record.workItemId, group);
+  });
+
+  return Array.from(groups.values()).sort((a, b) => b.selectedMinutes - a.selectedMinutes || b.minutes - a.minutes);
+}
+
 function updateSummary() {
   const today = document.querySelector("#timeline-date").value || todayString();
   const dayRecords = state.records.filter((record) => record.date === today);
@@ -466,46 +518,62 @@ function updateSummary() {
 function renderStats() {
   const range = getRange(activeStatsRange);
   const rangeRecords = recordsInRange(range);
-  const totalMinutes = rangeRecords.reduce((sum, record) => sum + recordMinutes(record), 0);
-  const typeStats = getTypeStats(rangeRecords);
+  const selectedRecords = getFilteredStatsRecords(rangeRecords);
+  const totalMinutes = selectedRecords.reduce((sum, record) => sum + recordMinutes(record), 0);
+  const typeStats = getTypeStats(selectedRecords);
+  const typeStatsByName = new Map(typeStats.map((item) => [item.type, item]));
+  const visibleTypeStats = getTypeStats(rangeRecords).map((item) => {
+    const selectedItem = typeStatsByName.get(item.type);
+    return {
+      ...item,
+      selectedMinutes: selectedItem?.minutes ?? 0,
+      color: selectedItem?.color ?? item.color,
+      checked: !statsFilters.excludedTypes.has(item.type),
+    };
+  });
   const bars = document.querySelector("#stats-type-bars");
   document.querySelector("#stats-type-title").textContent =
     `类型占比（${range.start} 至 ${range.end}，${formatReportDuration(totalMinutes)}）`;
 
-  bars.innerHTML = typeStats.length
-    ? typeStats
+  bars.innerHTML = visibleTypeStats.length
+    ? visibleTypeStats
         .map((item) => {
-          const percent = totalMinutes === 0 ? 0 : (item.minutes / totalMinutes) * 100;
-          return `<div><span>${escapeHtml(item.type)}</span><b><i style="width: ${percent}%; background:${item.color}"></i></b><strong>${percent.toFixed(1)}%</strong></div>`;
+          const percent = totalMinutes === 0 ? 0 : (item.selectedMinutes / totalMinutes) * 100;
+          const safeType = escapeHtml(item.type);
+          return `
+            <label class="stats-filter-row ${item.checked ? "" : "inactive"}">
+              <span class="stats-filter-name">
+                <input type="checkbox" data-stats-filter="type" value="${safeType}" ${item.checked ? "checked" : ""} />
+                <span>${safeType}</span>
+              </span>
+              <b><i style="width: ${percent}%; background:${item.color}"></i></b>
+              <strong>${percent.toFixed(1)}%</strong>
+            </label>
+          `;
         })
         .join("")
     : `<div class="empty-state compact">当前范围没有记录。</div>`;
 
-  const workGroups = new Map();
-  rangeRecords.forEach((record) => {
-    const workItem = getWorkItem(record.workItemId);
-    const group = workGroups.get(record.workItemId) ?? {
-      name: workItem?.name ?? "未命名工作",
-      minutes: 0,
-      contents: [],
-    };
-    group.minutes += recordMinutes(record);
-    group.contents.push(record.content);
-    workGroups.set(record.workItemId, group);
-  });
-
-  const rows = Array.from(workGroups.values()).sort((a, b) => b.minutes - a.minutes);
+  const rows = getStatsWorkGroups(rangeRecords, selectedRecords);
   document.querySelector("#stats-work-table").innerHTML = rows.length
     ? rows
-        .map(
-          (row) => `
-            <tr>
-              <td>${escapeHtml(row.name)}</td>
-              <td>${formatReportDuration(row.minutes)}</td>
-              <td>${row.contents.map((content) => escapeHtml(content)).join("；")}</td>
+        .map((row) => {
+          const checked = !statsFilters.excludedWorkItems.has(row.id) && !statsFilters.excludedTypes.has(row.type);
+          const safeId = escapeHtml(row.id);
+          const contents = row.selectedContents.length ? row.selectedContents : row.contents;
+          return `
+            <tr class="${checked ? "" : "inactive"}">
+              <td>
+                <label class="stats-table-check">
+                  <input type="checkbox" data-stats-filter="work-item" value="${safeId}" ${checked ? "checked" : ""} ${statsFilters.excludedTypes.has(row.type) ? "disabled" : ""} />
+                  <span>${escapeHtml(row.name)}</span>
+                </label>
+              </td>
+              <td>${formatReportDuration(checked ? row.selectedMinutes : row.minutes)}</td>
+              <td>${contents.map((content) => escapeHtml(content)).join("；")}</td>
             </tr>
-          `,
-        )
+          `;
+        })
         .join("")
     : `<tr><td colspan="3">当前范围没有记录。</td></tr>`;
 }
@@ -544,7 +612,7 @@ function groupRecordsForReport(records) {
 
 function buildExportMarkdown() {
   const range = getRange(activeStatsRange);
-  const typeGroups = groupRecordsForReport(recordsInRange(range));
+  const typeGroups = groupRecordsForReport(getFilteredStatsRecords(recordsInRange(range)));
   const totalMinutes = typeGroups.reduce((sum, group) => sum + group.minutes, 0);
   const lines = [
     "# 工作统计汇报",
@@ -917,6 +985,18 @@ function bindEvents() {
 
   document.querySelector("#stats-start-date").addEventListener("change", renderStats);
   document.querySelector("#stats-end-date").addEventListener("change", renderStats);
+  document.querySelector("#stats-view").addEventListener("change", (event) => {
+    const input = event.target.closest("[data-stats-filter]");
+    if (!input) return;
+    const filterType = input.dataset.statsFilter;
+    const targetSet = filterType === "type" ? statsFilters.excludedTypes : statsFilters.excludedWorkItems;
+    if (input.checked) {
+      targetSet.delete(input.value);
+    } else {
+      targetSet.add(input.value);
+    }
+    renderStats();
+  });
 
   document.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-action]");
