@@ -53,7 +53,7 @@
       <main class="main">
         <header class="topbar">
           <div>
-            <p class="eyebrow">2026-06-14 星期日</p>
+            <p class="eyebrow">正在读取日期</p>
             <h2>记录完成后的工作，而不是提前排班</h2>
           </div>
         </header>
@@ -79,18 +79,15 @@
                 <label class="field">
                   <span>工作类型</span>
                   <select name="type">
-                    <option>开发实现</option>
-                    <option>需求沟通</option>
-                    <option>问题排查</option>
-                    <option>文档整理</option>
-                    <option>会议同步</option>
-                    <option>学习研究</option>
+                    <option value="">请先新建工作类型</option>
                   </select>
                 </label>
 
                 <label class="field">
                   <span>关联工作</span>
-                  <select name="workItemId" id="work-item-select"></select>
+                  <select name="workItemId" id="work-item-select">
+                    <option value="">请先选择工作类型</option>
+                  </select>
                 </label>
 
                 <div class="time-row wide">
@@ -136,7 +133,7 @@
               <div class="metric-stack">
                 <div class="metric-row">
                   <span>总记录时长</span>
-                  <strong id="total-hours">6.0h</strong>
+                  <strong id="total-hours">0min</strong>
                 </div>
                 <div class="metric-row">
                   <span>主要类型</span>
@@ -207,7 +204,9 @@
 
                 <label class="field">
                   <span>默认类型</span>
-                  <select name="defaultType" id="work-item-type-select"></select>
+                  <select name="defaultType" id="work-item-type-select">
+                    <option value="">请先新建工作类型</option>
+                  </select>
                 </label>
 
                 <label class="field wide">
@@ -259,7 +258,7 @@
           <div class="section-head">
             <div>
               <h3>统计分析</h3>
-              <p>后续可以按天、周、月或自定义时间段计算。</p>
+              <p>按日、周、月、季度或自定义时间范围统计，可勾选筛选导出内容。</p>
             </div>
             <div class="analysis-actions">
               <div class="segmented" role="tablist" aria-label="统计范围">
