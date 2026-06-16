@@ -194,6 +194,37 @@ function getWorkItem(id) {
   return state.workItems.find((item) => item.id === id);
 }
 
+function normalizeTime(value) {
+  if (typeof value !== "string") return null;
+  // 兼容全角冒号、首尾空格
+  let raw = value.trim().replace(/：/g, ":");
+  if (!raw) return null;
+
+  let hour;
+  let minute;
+  if (raw.includes(":")) {
+    const parts = raw.split(":");
+    if (parts.length !== 2) return null;
+    [hour, minute] = parts;
+  } else if (/^\d{3,4}$/.test(raw)) {
+    // 900 -> 9:00，0930 -> 09:30
+    hour = raw.slice(0, raw.length - 2);
+    minute = raw.slice(-2);
+  } else if (/^\d{1,2}$/.test(raw)) {
+    // 9 -> 09:00
+    hour = raw;
+    minute = "0";
+  } else {
+    return null;
+  }
+
+  if (!/^\d{1,2}$/.test(hour) || !/^\d{1,2}$/.test(minute)) return null;
+  const h = Number(hour);
+  const m = Number(minute);
+  if (h > 23 || m > 59) return null;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 function minutesBetween(start, end) {
   const [startHour, startMinute] = start.split(":").map(Number);
   const [endHour, endMinute] = end.split(":").map(Number);
@@ -367,6 +398,33 @@ function renderTimeline() {
     .join("");
 }
 
+function renderMiniTimeline() {
+  const list = document.querySelector("#record-mini-timeline");
+  if (!list) return;
+  const selectedDate = document.querySelector("#timeline-date").value || todayString();
+  const dayRecords = state.records
+    .filter((record) => record.date === selectedDate)
+    .sort((a, b) => a.start.localeCompare(b.start));
+
+  if (dayRecords.length === 0) {
+    list.innerHTML = `<div class="mini-timeline-empty">这一天还没有记录。</div>`;
+    return;
+  }
+
+  list.innerHTML = dayRecords
+    .map((record) => {
+      const workItem = getWorkItem(record.workItemId);
+      return `
+        <div class="mini-timeline-item" title="${escapeHtml(record.content)}">
+          <span class="mini-time">${escapeHtml(record.start)}-${escapeHtml(record.end)}</span>
+          <span class="mini-name">${escapeHtml(workItem?.name ?? "未命名工作")}</span>
+          <span class="mini-tag">${escapeHtml(record.type)}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
 function getTypeStats(records) {
   const groups = new Map();
   records.forEach((record) => {
@@ -522,6 +580,7 @@ function refreshUi() {
   renderWorkTypes();
   renderWorkItems();
   renderTimeline();
+  renderMiniTimeline();
   renderStats();
   updateSummary();
   if (window.lucide) {
@@ -538,14 +597,14 @@ function switchView(viewName) {
   });
 }
 
-function resetEntryForm() {
+function resetEntryForm(defaultStart) {
   const form = document.querySelector("#entry-form");
   form.reset();
   form.elements.recordId.value = "";
   form.elements.date.value = document.querySelector("#timeline-date").value || todayString();
   form.elements.type.value = state.workTypes[0] ?? "";
   renderWorkItemSelect();
-  form.elements.start.value = "09:30";
+  form.elements.start.value = defaultStart || "09:30";
   form.elements.end.value = "10:45";
   document.querySelector("#entry-title").textContent = "新增一条工作记录";
   document.querySelector("#entry-submit-label").textContent = "加入今日记录";
@@ -702,6 +761,12 @@ function bindEvents() {
       alert("请填写工作内容。");
       return;
     }
+    const startTime = normalizeTime(formData.get("start"));
+    const endTime = normalizeTime(formData.get("end"));
+    if (!startTime || !endTime) {
+      alert("请填写有效的时间，例如 9:00、09:00 或 9:5。");
+      return;
+    }
     const nextRecord = {
       id: id || nextId(formData.get("date").replaceAll("-", ""), state.records),
       date: formData.get("date"),
@@ -709,8 +774,8 @@ function bindEvents() {
       workItemId: formData.get("workItemId"),
       content: formData.get("content").trim(),
       note: formData.get("note").trim(),
-      start: formData.get("start"),
-      end: formData.get("end"),
+      start: startTime,
+      end: endTime,
     };
 
     if (id) {
@@ -727,9 +792,13 @@ function bindEvents() {
       setPersistenceStatus("保存失败");
       return;
     }
-    resetEntryForm();
+    // 新增成功后，把结束时间同步为下一条的开始时间，下次只需改结束时间
+    resetEntryForm(id ? undefined : nextRecord.end);
     refreshUi();
-    switchView("timeline");
+    // 编辑已有记录后回到时间线；新增后留在记录页，便于连续录入
+    if (id) {
+      switchView("timeline");
+    }
   });
 
   document.querySelector("#work-item-form").addEventListener("submit", async (event) => {
