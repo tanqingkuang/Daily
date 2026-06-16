@@ -79,6 +79,30 @@ async function main() {
     assert.strictEqual(await page.locator('script[src^="https://unpkg.com"]').count(), 0);
     assert(!(await page.locator(".nav-list").textContent()).includes("JSON 数据"));
 
+    // 时间输入归一化：兼容 9:00 / 9：00 / 9:0 / 裸数字等写法
+    const timeCases = await page.evaluate(() => {
+      const inputs = ["09:00", "9:00", "9：00", "9:0", "9", "930", "0930", " 9:00 ", "12:5", "25:00", "9:99", "abc", ""];
+      return inputs.map((value) => [value, window.normalizeTime(value)]);
+    });
+    const expectedTimes = {
+      "09:00": "09:00",
+      "9:00": "09:00",
+      "9：00": "09:00",
+      "9:0": "09:00",
+      "9": "09:00",
+      "930": "09:30",
+      "0930": "09:30",
+      " 9:00 ": "09:00",
+      "12:5": "12:05",
+      "25:00": null,
+      "9:99": null,
+      abc: null,
+      "": null,
+    };
+    for (const [input, output] of timeCases) {
+      assert.strictEqual(output, expectedTimes[input], `normalizeTime(${JSON.stringify(input)}) => ${JSON.stringify(output)}`);
+    }
+
     await switchView(page, "record");
     await page.locator('#entry-form select[name="type"]').selectOption("开发实现");
     assert((await page.locator("#work-item-select").textContent()).includes("每日工作记录工具"));
@@ -114,8 +138,26 @@ async function main() {
     assert(markdown.includes("# 工作统计汇报"));
     assert(markdown.includes("Playwright 自验证流程开发。"));
 
+    // 新增记录端到端：宽松时间写法应被归一化，结束时间应同步到下次开始时间
+    await page.locator("#close-export-modal").click();
+    await switchView(page, "record");
+    await page.locator('#entry-form select[name="type"]').selectOption("需求沟通");
+    await page.locator("#work-item-select").selectOption("work-smoke-002");
+    await page.locator('#entry-form textarea[name="content"]').fill("验证宽松时间输入与时间同步。");
+    await page.locator('#entry-form input[name="start"]').fill("9:5");
+    await page.locator('#entry-form input[name="end"]').fill("10:5");
+    await page.locator('#entry-form button[type="submit"]').click();
+    await page.waitForSelector("#timeline-view.active", { timeout: 10000 });
+
+    // 提交成功后，开始时间应同步为刚才的结束时间（10:05）
+    assert.strictEqual(await page.locator('#entry-form input[name="start"]').inputValue(), "10:05");
+
     const saved = JSON.parse(fs.readFileSync(testDataFile, "utf8"));
-    assert.strictEqual(saved.records.length, 1);
+    assert.strictEqual(saved.records.length, 2);
+    const addedRecord = saved.records.find((record) => record.id !== "record-smoke-001");
+    assert(addedRecord, "应写入新增记录");
+    assert.strictEqual(addedRecord.start, "09:05");
+    assert.strictEqual(addedRecord.end, "10:05");
     assert.deepStrictEqual(errors, []);
   } finally {
     await electronApp.close();

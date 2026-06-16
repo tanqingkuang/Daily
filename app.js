@@ -194,6 +194,37 @@ function getWorkItem(id) {
   return state.workItems.find((item) => item.id === id);
 }
 
+function normalizeTime(value) {
+  if (typeof value !== "string") return null;
+  // 兼容全角冒号、首尾空格
+  let raw = value.trim().replace(/：/g, ":");
+  if (!raw) return null;
+
+  let hour;
+  let minute;
+  if (raw.includes(":")) {
+    const parts = raw.split(":");
+    if (parts.length !== 2) return null;
+    [hour, minute] = parts;
+  } else if (/^\d{3,4}$/.test(raw)) {
+    // 900 -> 9:00，0930 -> 09:30
+    hour = raw.slice(0, raw.length - 2);
+    minute = raw.slice(-2);
+  } else if (/^\d{1,2}$/.test(raw)) {
+    // 9 -> 09:00
+    hour = raw;
+    minute = "0";
+  } else {
+    return null;
+  }
+
+  if (!/^\d{1,2}$/.test(hour) || !/^\d{1,2}$/.test(minute)) return null;
+  const h = Number(hour);
+  const m = Number(minute);
+  if (h > 23 || m > 59) return null;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 function minutesBetween(start, end) {
   const [startHour, startMinute] = start.split(":").map(Number);
   const [endHour, endMinute] = end.split(":").map(Number);
@@ -538,14 +569,14 @@ function switchView(viewName) {
   });
 }
 
-function resetEntryForm() {
+function resetEntryForm(defaultStart) {
   const form = document.querySelector("#entry-form");
   form.reset();
   form.elements.recordId.value = "";
   form.elements.date.value = document.querySelector("#timeline-date").value || todayString();
   form.elements.type.value = state.workTypes[0] ?? "";
   renderWorkItemSelect();
-  form.elements.start.value = "09:30";
+  form.elements.start.value = defaultStart || "09:30";
   form.elements.end.value = "10:45";
   document.querySelector("#entry-title").textContent = "新增一条工作记录";
   document.querySelector("#entry-submit-label").textContent = "加入今日记录";
@@ -702,6 +733,12 @@ function bindEvents() {
       alert("请填写工作内容。");
       return;
     }
+    const startTime = normalizeTime(formData.get("start"));
+    const endTime = normalizeTime(formData.get("end"));
+    if (!startTime || !endTime) {
+      alert("请填写有效的时间，例如 9:00、09:00 或 9:5。");
+      return;
+    }
     const nextRecord = {
       id: id || nextId(formData.get("date").replaceAll("-", ""), state.records),
       date: formData.get("date"),
@@ -709,8 +746,8 @@ function bindEvents() {
       workItemId: formData.get("workItemId"),
       content: formData.get("content").trim(),
       note: formData.get("note").trim(),
-      start: formData.get("start"),
-      end: formData.get("end"),
+      start: startTime,
+      end: endTime,
     };
 
     if (id) {
@@ -727,7 +764,8 @@ function bindEvents() {
       setPersistenceStatus("保存失败");
       return;
     }
-    resetEntryForm();
+    // 新增成功后，把结束时间同步为下一条的开始时间，下次只需改结束时间
+    resetEntryForm(id ? undefined : nextRecord.end);
     refreshUi();
     switchView("timeline");
   });
