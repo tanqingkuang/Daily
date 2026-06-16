@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-and-build:
+  test-and-build-macos:
     name: Test and build macOS app
     runs-on: macos-14
 
@@ -40,4 +40,34 @@ jobs:
         with:
           name: daily-macos-arm64
           path: dist/每日工作记录-macos-arm64.zip
+          if-no-files-found: error
+
+  test-and-build-windows:
+    name: Test and build Windows exe
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run smoke tests
+        run: npm test
+
+      - name: Build Windows exe
+        run: npm run build:win
+
+      - name: Upload Windows exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-windows-x64
+          path: dist/每日工作记录.exe
           if-no-files-found: error
