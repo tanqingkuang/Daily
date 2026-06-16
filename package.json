@@ -1,9 +1,10 @@
 {
   "name": "daily",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "每日工作时间记录与统计桌面应用",
   "main": "electron-main.js",
   "scripts": {
+    "icons": "node scripts/generate-icons.js",
     "build:mac": "electron-builder --mac dir",
     "build:win": "electron-builder --win portable --x64",
     "desktop": "electron .",
@@ -25,11 +26,13 @@
       "preload.js"
     ],
     "mac": {
+      "icon": "build/icon.icns",
       "target": [
         "dir"
       ]
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "portable"
       ],
