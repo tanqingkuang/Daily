@@ -163,7 +163,36 @@ async function main() {
     assert(miniText.includes("每日工作记录工具"));
     assert(miniText.includes("需求评审"));
     assert(miniText.includes("09:05-10:05"));
+    assert.strictEqual(await page.locator("#record-mini-timeline-duration").textContent(), "1h45min");
     assert.strictEqual(await page.locator("#record-mini-timeline button").count(), 0);
+
+    // 统计筛选：关闭类型后，该类型和关联工作保留展示但置为未选，并从统计与导出中排除
+    await switchView(page, "stats");
+    await page.locator('input[data-stats-filter="type"][value="需求沟通"]').uncheck();
+    await page.waitForFunction(() => document.querySelector("#stats-type-title").textContent.includes("45min"));
+    assert(await page.locator('.stats-filter-row.inactive input[value="需求沟通"]').count(), "被关闭的类型应置灰保留");
+    assert(await page.locator('tr.inactive input[value="work-smoke-002"]').count(), "被关闭类型下的关联工作应置灰保留");
+    await page.getByRole("button", { name: "导出" }).click();
+    await page.waitForSelector("#export-markdown");
+    let filteredMarkdown = await page.locator("#export-markdown").inputValue();
+    assert(filteredMarkdown.includes("每日工作记录工具"));
+    assert(!filteredMarkdown.includes("需求评审"));
+    assert(!filteredMarkdown.includes("验证宽松时间输入与时间同步。"));
+    await page.locator("#close-export-modal").click();
+
+    // 统计筛选：关闭关联工作后，总时长、类型占比和导出内容都应基于剩余记录重新计算
+    await page.locator('input[data-stats-filter="type"][value="需求沟通"]').check();
+    await page.locator('input[data-stats-filter="work-item"][value="work-smoke-001"]').uncheck();
+    await page.waitForFunction(() => document.querySelector("#stats-type-title").textContent.includes("1h"));
+    assert(await page.locator('tr.inactive input[value="work-smoke-001"]').count(), "被关闭的关联工作应置灰保留");
+    await page.getByRole("button", { name: "导出" }).click();
+    await page.waitForSelector("#export-markdown");
+    filteredMarkdown = await page.locator("#export-markdown").inputValue();
+    assert(!filteredMarkdown.includes("每日工作记录工具"));
+    assert(!filteredMarkdown.includes("Playwright 自验证流程开发。"));
+    assert(filteredMarkdown.includes("需求评审"));
+    assert(filteredMarkdown.includes("验证宽松时间输入与时间同步。"));
+    await page.locator("#close-export-modal").click();
 
     const saved = JSON.parse(fs.readFileSync(testDataFile, "utf8"));
     assert.strictEqual(saved.records.length, 2);

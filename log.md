@@ -3,6 +3,25 @@
 ## 未发布
 
 - 日期：2026-06-16
+- 变更摘要：统计分析新增类型和关联工作复选筛选；取消勾选后对应行保留显示但置灰并添加删除线，统计总时长、类型占比、项目耗时和 Markdown 导出均按已勾选记录重新计算。
+- 版本：升级到 `V1.0.5`。
+- 测试入口：`npm test`。
+- 测试结果：通过。
+- 开发目录 app 编译：已执行 `npm run build:mac`。
+- Windows 构建验证：已执行 `npm run build:win`。
+- `daily-data.json` 格式影响：无。
+- 正式使用目录同步：已同步 app 和 exe，未修改 `daily-data.json`。
+
+- 日期：2026-06-16
+- 变更摘要：新增「当日时间线」合计时长显示，按小时和分钟展示，例如 `3h20min`。
+- 测试入口：`npm test`。
+- 测试结果：通过。
+- 开发目录 app 编译：已执行 `npm run build:mac`。
+- Windows 构建验证：已执行 `npm run build:win`。
+- `daily-data.json` 格式影响：无。
+- 正式使用目录同步：未同步。
+
+- 日期：2026-06-16
 - 变更摘要：新增 GitHub Actions CI 工作流，push、pull request 和手动触发时会分别在 macOS 与 Windows runner 上执行测试和构建，并上传 macOS app zip 与 Windows exe 构建产物。
 - 测试入口：`npm test`。
 - 测试结果：通过。
