@@ -398,6 +398,33 @@ function renderTimeline() {
     .join("");
 }
 
+function renderMiniTimeline() {
+  const list = document.querySelector("#record-mini-timeline");
+  if (!list) return;
+  const selectedDate = document.querySelector("#timeline-date").value || todayString();
+  const dayRecords = state.records
+    .filter((record) => record.date === selectedDate)
+    .sort((a, b) => a.start.localeCompare(b.start));
+
+  if (dayRecords.length === 0) {
+    list.innerHTML = `<div class="mini-timeline-empty">这一天还没有记录。</div>`;
+    return;
+  }
+
+  list.innerHTML = dayRecords
+    .map((record) => {
+      const workItem = getWorkItem(record.workItemId);
+      return `
+        <div class="mini-timeline-item" title="${escapeHtml(record.content)}">
+          <span class="mini-time">${escapeHtml(record.start)}-${escapeHtml(record.end)}</span>
+          <span class="mini-name">${escapeHtml(workItem?.name ?? "未命名工作")}</span>
+          <span class="mini-tag">${escapeHtml(record.type)}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
 function getTypeStats(records) {
   const groups = new Map();
   records.forEach((record) => {
@@ -553,6 +580,7 @@ function refreshUi() {
   renderWorkTypes();
   renderWorkItems();
   renderTimeline();
+  renderMiniTimeline();
   renderStats();
   updateSummary();
   if (window.lucide) {

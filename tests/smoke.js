@@ -152,6 +152,13 @@ async function main() {
     // 提交成功后，开始时间应同步为刚才的结束时间（10:05）
     assert.strictEqual(await page.locator('#entry-form input[name="start"]').inputValue(), "10:05");
 
+    // 记录页右侧的当日时间线应体现两条记录，且不含编辑/删除操作
+    const miniText = await page.locator("#record-mini-timeline").textContent();
+    assert(miniText.includes("每日工作记录工具"));
+    assert(miniText.includes("需求评审"));
+    assert(miniText.includes("09:05-10:05"));
+    assert.strictEqual(await page.locator("#record-mini-timeline button").count(), 0);
+
     const saved = JSON.parse(fs.readFileSync(testDataFile, "utf8"));
     assert.strictEqual(saved.records.length, 2);
     const addedRecord = saved.records.find((record) => record.id !== "record-smoke-001");
